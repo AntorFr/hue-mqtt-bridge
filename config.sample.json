@@ -2,7 +2,8 @@
   "broker": {
     "host": "localhost",
     "username": "XXXXXXXX",
-    "password": "XXXXXXXX"
+    "password": "XXXXXXXX",
+    "modejson":true
   },
   "bridges": [
     {

@@ -11,7 +11,8 @@ config = extend({
   broker: {
     host: 'localhost',
     username: '',
-    password: ''
+    password: '',
+    modejson: true
   },
 }, config);
 
@@ -42,6 +43,7 @@ function startPolling() {
     bridge.prefix   = bridge.prefix || 'hue';
     bridge.sensors  = {};
     bridge.skipped  = false;
+    bridge.modejson = true;
 
     console.log('Polling Hue bridge %s every %dms', bridge.host, bridge.interval);
 
@@ -88,15 +90,27 @@ function pollSensors(_bridge) {
 
       if (undefined !== sensorB && !equal(sensorA, sensorB)) {
         var nameSlug = slugify(sensorA.name);
+        var topic = bridge.prefix + '/' + nameSlug;
 
-        Object.keys(sensorA.state).forEach(function(key) {
-          var keySlug = slugify(key);
-          var topic = bridge.prefix + '/' + nameSlug + '/' + keySlug;
-          var payload = sensorA.state[key];
+        if(bridge.modejson) {
+          var payload = {}
+          Object.keys(sensorA.state).forEach(function(key) {
+            payload[slugify(key)] = sensorA.state[key];
+          });
+          client.publish(topic, JSON.stringify(payload));
+           // console.log('%s %s', topic, JSON.stringify(payload));
+        } else {}
 
-          // console.log('%s %s', topic, payload.toString());
-          client.publish(topic, payload.toString());
-        });
+          Object.keys(sensorA.state).forEach(function(key) {
+            var keySlug = slugify(key);
+            var topic = bridge.prefix + '/' + nameSlug + '/' + keySlug;
+            var payload = sensorA.state[key];
+
+            // console.log('%s %s', topic, payload.toString());
+            client.publish(topic, payload.toString());
+          });
+        }
+
       }
 
       bridge.sensors[id] = sensorA;
