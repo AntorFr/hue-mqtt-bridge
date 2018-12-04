@@ -99,7 +99,7 @@ function pollSensors(_bridge) {
           });
           client.publish(topic, JSON.stringify(payload));
            // console.log('%s %s', topic, JSON.stringify(payload));
-        } else {}
+        } else {
 
           Object.keys(sensorA.state).forEach(function(key) {
             var keySlug = slugify(key);
