@@ -5,6 +5,7 @@ var request = require('request');
 var extend  = require('deep-extend');
 var equal   = require('equals');
 var config  = require('./config.json');
+var logger = require('./config/winston');
 
 config = extend({
   bridges: [],
@@ -16,8 +17,13 @@ config = extend({
   },
 }, config);
 
+
+logger.info('broker adress %s', config.broker.host,);
+
+
+
 if (undefined === config.bridges || !config.bridges.length) {
-  console.error('No Philips Hue bridges are configured. Please configure a bridge and try again.');
+  logger.error('No Philips Hue bridges are configured. Please configure a bridge and try again.');
   process.exit(1);
 }
 
@@ -28,12 +34,12 @@ function slugify(value) {
 function startPolling() {
   config.bridges.forEach(function(bridge, index) {
     if (!bridge || undefined === bridge.host || !bridge.host) {
-      console.error('Cannot poll Hue bridge: missing required argument "host"');
+      logger.error('Cannot poll Hue bridge: missing required argument "host"');
       process.exit(1);
     }
 
     if (undefined === bridge.username || !bridge.username) {
-      console.error('Cannot poll Hue bridge %s: missing required argument "username"', bridge.host);
+      logger.error('Cannot poll Hue bridge %s: missing required argument "username"', bridge.host);
       process.exit(1);
     }
 
@@ -45,7 +51,7 @@ function startPolling() {
     bridge.skipped  = false;
     bridge.modejson = true;
 
-    console.log('Polling Hue bridge %s every %dms', bridge.host, bridge.interval);
+    logger.info('Polling Hue bridge %s every %dms', bridge.host, bridge.interval);
 
     bridge.timer = setInterval(pollSensors, bridge.interval, bridge);
     pollSensors(bridge);
@@ -58,7 +64,7 @@ function pollSensors(_bridge) {
   if (bridge.polling) {
     if (!bridge.skipped) {
       bridge.skipped = true;
-      console.log('Polling skipped on Hue bridge %s. Consider raising your polling interval.', bridge.host);
+      logger.warn('Polling skipped on Hue bridge %s. Consider raising your polling interval.', bridge.host);
     }
     return false;
   }
@@ -98,7 +104,7 @@ function pollSensors(_bridge) {
             payload[slugify(key)] = sensorA.state[key];
           });
           client.publish(topic, JSON.stringify(payload));
-           // console.log('%s %s', topic, JSON.stringify(payload));
+          logger.info('%s %s', topic, JSON.stringify(payload));
         } else {
 
           Object.keys(sensorA.state).forEach(function(key) {
@@ -106,7 +112,7 @@ function pollSensors(_bridge) {
             var topic = bridge.prefix + '/' + nameSlug + '/' + keySlug;
             var payload = sensorA.state[key];
 
-            // console.log('%s %s', topic, payload.toString());
+            logger.info('%s %s', topic, payload.toString());
             client.publish(topic, payload.toString());
           });
         }
@@ -138,10 +144,10 @@ client.on('connect', function() {
 
 client.on('error', function(err) {
   if (err)
-    return console.error('MQTT Error: %s', err.toString());
+    return logger.error('MQTT Error: %s', err.toString());
 });
 
 client.on('close', function(err) {
   if (err)
-    return console.error('MQTT Error: %s', err.toString());
+    return logger.error('MQTT Error: %s', err.toString());
 });
